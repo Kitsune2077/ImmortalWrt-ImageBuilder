@@ -21,23 +21,44 @@ EOF
 echo "cat pppoe-settings"
 cat /home/build/immortalwrt/files/etc/config/pppoe-settings
 
-if [ -z "$CUSTOM_PACKAGES" ]; then
-  echo "⚪️ 未选择 任何第三方软件包"
-else
-  # ============= 同步第三方插件库==============
-  # 同步第三方软件仓库run/ipk
-  echo "🔄 正在同步第三方软件仓库 Cloning run file repo..."
-  git clone --depth=1 https://github.com/wukongdaily/store.git /tmp/store-run-repo
+# 创建ipv6配置文件 yml传入ipv6变量————>ipv6-settings文件 (首启由 99-ipv6.sh 读取)
+# 未启用时写入 enable_ipv6=no, 99-ipv6.sh 会静默跳过, 不影响原有行为
+cat << EOF > /home/build/immortalwrt/files/etc/config/ipv6-settings
+enable_ipv6=${ENABLE_IPV6:-no}
+ipv6_assign=${IPV6_ASSIGN:-64}
+ipv6_ifaceid=${IPV6_IFACEID:-eui64}
+ipv6_dhcpv6=${IPV6_DHCPV6:-disabled}
+ipv6_dns=${IPV6_DNS:-no}
+EOF
 
-  # 拷贝 run/x86 下所有 run 文件和ipk文件 到 extra-packages 目录
-  mkdir -p /home/build/immortalwrt/extra-packages
-  cp -r /tmp/store-run-repo/run/x86/* /home/build/immortalwrt/extra-packages/
+# 创建ap-modem配置文件 yml传入变量————>ap-modem-settings文件 (99-ap-modem.sh 首启读取)
+# 插件 ipk 包经 extra-packages/ 收进本地 packages/ 源, PACKAGES 处正规安装
+cat << EOF > /home/build/immortalwrt/files/etc/config/ap-modem-settings
+install_ap_modem=${ENABLE_AP_MODEM:-no}
+ap_modem_enabled=${AP_MODEM_ENABLED:-no}
+ap_modem_ip=${AP_MODEM_IP:-192.168.1.1}
+EOF
 
-  echo "✅ Run files copied to extra-packages:"
-  ls -lh /home/build/immortalwrt/extra-packages/*.run
-  # 解压并拷贝ipk到packages目录
+if [ -n "$CUSTOM_PACKAGES" ] || [ "$ENABLE_AP_MODEM" = "yes" ]; then
+  if [ -n "$CUSTOM_PACKAGES" ]; then
+    # ============= 同步第三方插件库==============
+    # 同步第三方软件仓库run/ipk
+    echo "🔄 正在同步第三方软件仓库 Cloning run file repo..."
+    git clone --depth=1 https://github.com/wukongdaily/store.git /tmp/store-run-repo
+
+    # 拷贝 run/x86 下所有 run 文件和ipk文件 到 extra-packages 目录
+    mkdir -p /home/build/immortalwrt/extra-packages
+    cp -r /tmp/store-run-repo/run/x86/* /home/build/immortalwrt/extra-packages/
+
+    echo "✅ Run files copied to extra-packages:"
+    ls -lh /home/build/immortalwrt/extra-packages/*.run
+  fi
+  # 解压并拷贝ipk到packages目录 (extra-packages/ 同时由 volume 注入 istore 官方
+  # 源的 luci-app-ap-modem ipk 包, 见 workflow Prepare 步骤)
   sh shell/prepare-packages.sh
   ls -lah /home/build/immortalwrt/packages/
+else
+  echo "⚪️ 未选择 任何第三方软件包"
 fi
 
 # 输出调试信息
@@ -62,6 +83,12 @@ PACKAGES="$PACKAGES luci-i18n-filemanager-zh-cn"
 # ======== shell/custom-packages.sh =======
 # 合并imm仓库以外的第三方插件
 PACKAGES="$PACKAGES $CUSTOM_PACKAGES"
+
+# luci-app-ap-modem: 本地 ipk 源正规安装 (设备上可被 opkg 管理);
+# kmod-veth 是 init 脚本创建 veth 对所需
+if [ "$ENABLE_AP_MODEM" = "yes" ]; then
+    PACKAGES="$PACKAGES luci-app-ap-modem luci-i18n-ap-modem-zh-cn kmod-veth"
+fi
 
 
 # 判断是否需要编译 Docker 插件

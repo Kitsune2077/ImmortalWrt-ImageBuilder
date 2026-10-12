@@ -117,7 +117,7 @@ https://www.youtube.com/watch?v=7i6BQeitUtE
 
 ### luci-app-ap-modem（访问 WAN 口光猫/AP）
 
-同两个无线路由工作流新增：
+`Build 24.10.x / 25.12.x Wireless Router`、`Build x86-64 24.10.x / 25.12.x`、`Build ISO x86-64` 等工作流均新增：
 
 | 输入 | 说明 | 默认 |
 |---|---|---|
@@ -133,11 +133,11 @@ WAN 侧按拨号方式自动区分：PPPoE 依赖自动生成的动态 `wan_6`�
 并保持 `wan.ipv6` 留空以启用该机制）；DHCP WAN 则确保显式 `wan6`(dhcpv6) 承载 PD。
 单网口（旁路由/NAS 模式，LAN 为 dhcp）只应用 dnsmasq AAAA 过滤调整，跳过 WAN/RA 配置。
 
-> 注意：ImageBuilder 只能做镜像层定制（文件覆盖/uci-defaults/包列表），
-> 内核级定制（如 eBPF/BTF、内核选项）需要源码编译，见
-> [mt5000-immortalwrt](https://github.com/Kitsune2077/mt5000-immortalwrt)。
-> x86/ISO 类工作流暂未接入本选项（脚本已就位于 `files/etc/uci-defaults/99-ipv6.sh`，
-> 需要时按同样模式传入环境变量即可）。
+> x86/ISO 四个工作流（`build-x86-64-24.10.x / 25.12.x`、`build-iso / build-iso-25.12.x`）
+> 已同步接入 IPv6 与 luci-app-ap-modem 选项：首启脚本与无线路由共用
+> `files/etc/uci-defaults/`；插件在 x86/ISO 上经 `extra-packages/` 走**本地源正规安装**
+> （25.12 为 apk 包、24.10 为 ipk 包，设备上均可被包管理器管理）。
+> 单网口 x86（LAN 为 dhcp 的 NAS/旁路由模式）只应用 dnsmasq AAAA 调整，跳过 WAN/RA 配置。
 
 ## ❤️如何构建docker版ImmortalWrt（建议收藏）⬇️
 https://wkdaily.cpolar.cn/15
