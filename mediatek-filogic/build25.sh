@@ -62,6 +62,13 @@ ap_modem_enabled=${AP_MODEM_ENABLED:-no}
 ap_modem_ip=${AP_MODEM_IP:-192.168.1.1}
 EOF
 
+# 导入 istore 官方 apk 公钥: IB 默认 CONFIG_SIGNATURE_CHECK=y, keys/ 只有官方
+# 公钥, 未导入 istore 公钥时其签名的本地源包会 UNTRUSTED 安装失败
+if [ "$ENABLE_AP_MODEM" = "yes" ] && [ -f /home/build/immortalwrt/extra-packages/istore-apk.pem ]; then
+    cp /home/build/immortalwrt/extra-packages/istore-apk.pem /home/build/immortalwrt/keys/
+    echo "✅ istore apk key imported"
+fi
+
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting build process..."
 

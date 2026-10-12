@@ -171,6 +171,12 @@ jobs:
           fetch luci-i18n-ap-modem-zh-cn.apk \
             "https://istore.istoreos.com/repo-apk/all/nas_luci/luci-i18n-ap-modem-zh-cn-23.098.14018~0543d43.apk" \
             "e5650cddf6a707c9e09db1eb9ef387562da00655a80c5add47e296f7d7f1e0cd"
+          # istore 官方 apk 公钥: IB 默认开启签名检查(CONFIG_SIGNATURE_CHECK=y),
+          # build.sh 会将其导入 keys/, 否则 istore 签名的包 UNTRUSTED 安装失败
+          fetch istore-apk.pem \
+            "https://istore.istoreos.com/repo-apk/istore-apk.pem" \
+            "17d39c124a39a0f0bf54601073ddb3d42bad45b40be9ad28c17e805bee04db08"
+          cp /tmp/istore-apk.pem "${{ github.workspace }}/apk-extra/"
           cp /tmp/luci-app-ap-modem.apk /tmp/luci-i18n-ap-modem-zh-cn.apk \
              "${{ github.workspace }}/apk-extra/ap-modem/"
           ls -la "${{ github.workspace }}/apk-extra/ap-modem/"
