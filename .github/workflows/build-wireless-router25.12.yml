@@ -520,6 +520,49 @@ on:
       pppoe_password:
         description: "宽带密码 (若启用PPPoE)"
         required: false
+      enable_ipv6:
+        description: "按 Aethersailor 方案启用 IPv6 (WAN 委托前缀 + LAN RA/SLAAC)"
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      ipv6_assign:
+        description: "LAN IPv6 分配长度 (上游只给 /64 用 64; 向二级路由委派用 60/56)"
+        required: false
+        default: '64'
+        type: choice
+        options:
+          - '64'
+          - '60'
+          - '56'
+          - 'disabled'
+      ipv6_ifaceid:
+        description: "路由器 LAN 接口自身 IPv6 后缀 (不影响客户端)"
+        required: false
+        default: 'eui64'
+        type: choice
+        options:
+          - 'eui64'
+          - 'random'
+          - '::1'
+      ipv6_dhcpv6:
+        description: "LAN DHCPv6 (disabled=纯SLAAC兼容安卓; server=有状态分配)"
+        required: false
+        default: 'disabled'
+        type: choice
+        options:
+          - 'disabled'
+          - 'server'
+      ipv6_dns:
+        description: "向客户端通告路由器为 IPv6 DNS (no=DNS 走 IPv4, 保住代理分流)"
+        required: false
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
 
 
 permissions:
@@ -651,6 +694,11 @@ jobs:
               -e ENABLE_PPPOE=${{ inputs.enable_pppoe }} \
               -e PPPOE_ACCOUNT=${{ inputs.pppoe_account }} \
               -e PPPOE_PASSWORD=${{ inputs.pppoe_password }} \
+              -e ENABLE_IPV6=${{ github.event.inputs.enable_ipv6 }} \
+              -e IPV6_ASSIGN=${{ github.event.inputs.ipv6_assign }} \
+              -e IPV6_IFACEID=${{ github.event.inputs.ipv6_ifaceid }} \
+              -e IPV6_DHCPV6=${{ github.event.inputs.ipv6_dhcpv6 }} \
+              -e IPV6_DNS=${{ github.event.inputs.ipv6_dns }} \
             immortalwrt/imagebuilder:$tag /bin/bash /home/build/immortalwrt/build.sh
           
 
@@ -665,6 +713,9 @@ jobs:
           custom_router_ip="${{ github.event.inputs.custom_router_ip }}"
           extra_content_ip="#### 管理地址 $custom_router_ip"
           echo -e "\n $extra_content_ip" >> ${{ github.workspace }}/mediatek-filogic/info.md
+          if [ "${{ github.event.inputs.enable_ipv6 }}" = "yes" ]; then
+            echo -e "#### IPv6 已启用 (WAN 委托前缀 + LAN RA/SLAAC, ip6assign=${{ github.event.inputs.ipv6_assign }}, DHCPv6 ${{ github.event.inputs.ipv6_dhcpv6 }})" >> ${{ github.workspace }}/mediatek-filogic/info.md
+          fi
           
           
       - name: Upload ImmortalWrt as release assets

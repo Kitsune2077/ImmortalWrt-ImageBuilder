@@ -47,6 +47,16 @@ EOF
 echo "cat pppoe-settings"
 cat /home/build/immortalwrt/files/etc/config/pppoe-settings
 
+# 创建ipv6配置文件 yml传入ipv6变量————>ipv6-settings文件 (首启由 99-ipv6.sh 读取)
+# 未启用时写入 enable_ipv6=no, 99-ipv6.sh 会静默跳过, 不影响原有行为
+cat << EOF > /home/build/immortalwrt/files/etc/config/ipv6-settings
+enable_ipv6=${ENABLE_IPV6:-no}
+ipv6_assign=${IPV6_ASSIGN:-64}
+ipv6_ifaceid=${IPV6_IFACEID:-eui64}
+ipv6_dhcpv6=${IPV6_DHCPV6:-disabled}
+ipv6_dns=${IPV6_DNS:-no}
+EOF
+
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting build process..."
 

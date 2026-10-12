@@ -101,6 +101,32 @@ https://www.youtube.com/watch?v=7i6BQeitUtE
 - https://github.com/wukongdaily/img-installer
 
 
+## 🛰️ 本 Fork 新增：IPv6 构建选项（无线路由 workflow）
+
+`Build 24.10.x Wireless Router` / `Build 25.12.x Wireless Router` 两个工作流新增 5 个输入，
+按 [Aethersailor《OpenWrt IPv6 设置方案》](https://github.com/Aethersailor/Custom_OpenClash_Rules/wiki/OpenWrt-IPv6-%E8%AE%BE%E7%BD%AE%E6%96%B9%E6%A1%88)
+在构建阶段预置 IPv6（主路由 + 运营商 PD 前缀架构）：
+
+| 输入 | 说明 | 默认 |
+|---|---|---|
+| `enable_ipv6` | 总开关：WAN 委托前缀 + LAN RA/SLAAC 下发、关闭 NDP 代理、dnsmasq 不过滤 AAAA | `no` |
+| `ipv6_assign` | LAN `ip6assign` 长度（上游只给 /64 用 64；要向二级路由委派用 60/56；`disabled` 不下发公网 v6） | `64` |
+| `ipv6_ifaceid` | 路由器 LAN 接口**自身**地址后缀（eui64/random/::1，不影响客户端后缀） | `eui64` |
+| `ipv6_dhcpv6` | `disabled`=纯 SLAAC（兼容安卓）；`server`=有状态 DHCPv6（RA 自动带 M/O 标志） | `disabled` |
+| `ipv6_dns` | 是否通告路由器为 IPv6 DNS（`no` 时 DNS 走 IPv4，保住 OpenClash 等的分流） | `no` |
+
+实现方式与 PPPoE 相同：构建时 `build*.sh` 把选项写入镜像内 `/etc/config/ipv6-settings`，
+首启脚本 `99-ipv6.sh`（在 `99-custom.sh` 之后执行）读取并写入 netifd/odhcpd 配置。
+WAN 侧按拨号方式自动区分：PPPoE 依赖自动生成的动态 `wan_6`（会删除静态 wan6、
+并保持 `wan.ipv6` 留空以启用该机制）；DHCP WAN 则确保显式 `wan6`(dhcpv6) 承载 PD。
+单网口（旁路由/NAS 模式，LAN 为 dhcp）只应用 dnsmasq AAAA 过滤调整，跳过 WAN/RA 配置。
+
+> 注意：ImageBuilder 只能做镜像层定制（文件覆盖/uci-defaults/包列表），
+> 内核级定制（如 eBPF/BTF、内核选项）需要源码编译，见
+> [mt5000-immortalwrt](https://github.com/Kitsune2077/mt5000-immortalwrt)。
+> x86/ISO 类工作流暂未接入本选项（脚本已就位于 `files/etc/uci-defaults/99-ipv6.sh`，
+> 需要时按同样模式传入环境变量即可）。
+
 ## ❤️如何构建docker版ImmortalWrt（建议收藏）⬇️
 https://wkdaily.cpolar.cn/15
 # 🎉鸣谢
