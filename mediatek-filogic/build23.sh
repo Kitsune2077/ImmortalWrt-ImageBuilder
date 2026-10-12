@@ -57,6 +57,19 @@ ipv6_dhcpv6=${IPV6_DHCPV6:-disabled}
 ipv6_dns=${IPV6_DNS:-no}
 EOF
 
+# luci-app-ap-modem (访问 WAN 口光猫/AP): 预编译包已由 workflow 下载并解包到
+# files-apmodem overlay (arch=all), 这里拷入镜像 (kmod-veth 在 PACKAGES 处追加)
+if [ "$ENABLE_AP_MODEM" = "yes" ]; then
+    cp -r /home/build/immortalwrt/files-apmodem/. /home/build/immortalwrt/files/
+fi
+
+# 创建ap-modem配置文件 yml传入变量————>ap-modem-settings文件 (99-ap-modem.sh 首启读取)
+cat << EOF > /home/build/immortalwrt/files/etc/config/ap-modem-settings
+install_ap_modem=${ENABLE_AP_MODEM:-no}
+ap_modem_enabled=${AP_MODEM_ENABLED:-no}
+ap_modem_ip=${AP_MODEM_IP:-192.168.1.1}
+EOF
+
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting build process..."
 
@@ -83,6 +96,11 @@ PACKAGES="$PACKAGES script-utils"
 # 第三方软件包 合并
 # ======== shell/custom-packages.sh =======
 PACKAGES="$PACKAGES $CUSTOM_PACKAGES"
+
+# luci-app-ap-modem 需要 veth 内核模块 (init 脚本创建 veth 对)
+if [ "$ENABLE_AP_MODEM" = "yes" ]; then
+    PACKAGES="$PACKAGES kmod-veth"
+fi
 
 # 判断是否需要编译 Docker 插件
 if [ "$INCLUDE_DOCKER" = "yes" ]; then

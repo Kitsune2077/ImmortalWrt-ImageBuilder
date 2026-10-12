@@ -115,6 +115,18 @@ https://www.youtube.com/watch?v=7i6BQeitUtE
 | `ipv6_dhcpv6` | `disabled`=纯 SLAAC（兼容安卓）；`server`=有状态 DHCPv6（RA 自动带 M/O 标志） | `disabled` |
 | `ipv6_dns` | 是否通告路由器为 IPv6 DNS（`no` 时 DNS 走 IPv4，保住 OpenClash 等的分流） | `no` |
 
+### luci-app-ap-modem（访问 WAN 口光猫/AP）
+
+同两个无线路由工作流新增：
+
+| 输入 | 说明 | 默认 |
+|---|---|---|
+| `enable_ap_modem` | 安装 [luci-app-ap-modem](https://github.com/linkease/openwrt-app-actions/tree/main/applications/luci-app-ap-modem)（让局域网直接访问 WAN 口光猫/AP 管理页；来自 iStoreOS 官方源的预编译包，arch=all 全平台通用，含中文翻译，SHA256 固定） | `no` |
+| `ap_modem_enabled` | 安装后是否直接开启光猫访问（`no`=只装不启用，刷机后在 LuCI「AP / Modem」页自行开启） | `no` |
+| `ap_modem_ip` | 光猫 IP 地址，用于自动生成 WAN 侧虚拟 IP（取前三段 + `.254`，假定光猫侧为 /24） | `192.168.1.1` |
+
+原理：构建时 workflow 从 `istore.istoreos.com` 下载预编译 ipk 解包进 FILES overlay（ImageBuilder 只能装预编译包，官方无此包的 apk 索引），`build*.sh` 同时追加 `kmod-veth`（插件 init 脚本创建 veth 对所需）；首启 `99-ap-modem.sh` 按选项写入 `ap_modem.config.enabled` 与 `ap_modem.wan.ipaddr` 并注册自启。注意：该插件不经过 opkg/apk 包管理器（升级/卸载请直接覆盖文件或在 LuCI 页面操作）。
+
 实现方式与 PPPoE 相同：构建时 `build*.sh` 把选项写入镜像内 `/etc/config/ipv6-settings`，
 首启脚本 `99-ipv6.sh`（在 `99-custom.sh` 之后执行）读取并写入 netifd/odhcpd 配置。
 WAN 侧按拨号方式自动区分：PPPoE 依赖自动生成的动态 `wan_6`（会删除静态 wan6、
