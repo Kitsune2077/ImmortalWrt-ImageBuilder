@@ -125,7 +125,7 @@ https://www.youtube.com/watch?v=7i6BQeitUtE
 | `ap_modem_enabled` | 安装后是否直接开启光猫访问（`no`=只装不启用，刷机后在 LuCI「AP / Modem」页自行开启） | `no` |
 | `ap_modem_ip` | 光猫 IP 地址，用于自动生成 WAN 侧虚拟 IP（取前三段 + `.254`，假定光猫侧为 /24） | `192.168.1.1` |
 
-原理：构建时 workflow 从 `istore.istoreos.com` 下载预编译 ipk 解包进 FILES overlay（ImageBuilder 只能装预编译包，官方无此包的 apk 索引），`build*.sh` 同时追加 `kmod-veth`（插件 init 脚本创建 veth 对所需）；首启 `99-ap-modem.sh` 按选项写入 `ap_modem.config.enabled` 与 `ap_modem.wan.ipaddr` 并注册自启。注意：该插件不经过 opkg/apk 包管理器（升级/卸载请直接覆盖文件或在 LuCI 页面操作）。
+原理：构建时 workflow 从 iStoreOS 官方源下载预编译包（SHA256 固定）——**25.12 机型走官方 apk 包**（`repo-apk` 源，放入 ImageBuilder 的 `extra-packages/` 本地 apk 源，`PACKAGES` 正规安装，设备上可被 `apk` 管理）；24.10 与 23.05 遗留机型（opkg 时代）走 ipk 解包进 FILES overlay。`build*.sh` 均追加 `kmod-veth`（插件 init 脚本创建 veth 对所需）；首启 `99-ap-modem.sh` 按选项写入 `ap_modem.config.enabled` 与 `ap_modem.wan.ipaddr` 并注册自启。注意：overlay 路径（24.10/23.05）不经包管理器，升级以重新构建为准。
 
 实现方式与 PPPoE 相同：构建时 `build*.sh` 把选项写入镜像内 `/etc/config/ipv6-settings`，
 首启脚本 `99-ipv6.sh`（在 `99-custom.sh` 之后执行）读取并写入 netifd/odhcpd 配置。

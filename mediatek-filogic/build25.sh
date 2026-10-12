@@ -1,22 +1,25 @@
 #!/bin/bash
 source shell/apk-custom-packages.sh
 #echo "✅ 你选择了第三方软件包：$CUSTOM_PACKAGES"
-if [ -z "$CUSTOM_PACKAGES" ]; then
-  echo "⚪️ 未选择 任何第三方软件包"
-else
-  # ============= 同步第三方插件库==============
-  # 同步第三方软件仓库run/apk
-  echo "🔄 正在同步第三方软件仓库 Cloning apk file repo..."
-  git clone --depth=1 https://github.com/wukongdaily/apk.git /tmp/store-apk-repo
+if [ -n "$CUSTOM_PACKAGES" ] || [ "$ENABLE_AP_MODEM" = "yes" ]; then
+  if [ -n "$CUSTOM_PACKAGES" ]; then
+    # ============= 同步第三方插件库==============
+    # 同步第三方软件仓库run/apk
+    echo "🔄 正在同步第三方软件仓库 Cloning apk file repo..."
+    git clone --depth=1 https://github.com/wukongdaily/apk.git /tmp/store-apk-repo
 
-  # 拷贝 run/arm64 下所有 run 文件和apk文件 到 extra-packages 目录
-  mkdir -p /home/build/immortalwrt/extra-packages
-  cp -r /tmp/store-apk-repo/run/arm64-a53/* /home/build/immortalwrt/extra-packages/
+    # 拷贝 run/arm64 下所有 run 文件和apk文件 到 extra-packages 目录
+    mkdir -p /home/build/immortalwrt/extra-packages
+    cp -r /tmp/store-apk-repo/run/arm64-a53/* /home/build/immortalwrt/extra-packages/
 
-  echo "✅ Run files copied to extra-packages:"
-  # 解压并拷贝apk到packages目录
+    echo "✅ Run files copied to extra-packages:"
+  fi
+  # 解压并拷贝apk到packages目录 (extra-packages/ 同时由 volume 注入 istore 官方
+  # 源的 luci-app-ap-modem apk 包, 见 workflow Prepare 步骤)
   sh shell/apk-prepare-packages.sh
   ls -lah /home/build/immortalwrt/packages/
+else
+  echo "⚪️ 未选择 任何第三方软件包"
 fi
 
 
@@ -48,11 +51,9 @@ ipv6_dhcpv6=${IPV6_DHCPV6:-disabled}
 ipv6_dns=${IPV6_DNS:-no}
 EOF
 
-# luci-app-ap-modem (访问 WAN 口光猫/AP): 预编译包已由 workflow 下载并解包到
-# files-apmodem overlay (arch=all), 这里拷入镜像 (kmod-veth 在 PACKAGES 处追加)
-if [ "$ENABLE_AP_MODEM" = "yes" ]; then
-    cp -r /home/build/immortalwrt/files-apmodem/. /home/build/immortalwrt/files/
-fi
+# luci-app-ap-modem (访问 WAN 口光猫/AP): apk 包由 workflow 下载并放入
+# extra-packages/ (经顶部 apk-prepare-packages.sh 收进本地 packages/ 源),
+# PACKAGES 在第三方软件包合并处追加 插件本体+中文翻译+kmod-veth
 
 # 创建ap-modem配置文件 yml传入变量————>ap-modem-settings文件 (99-ap-modem.sh 首启读取)
 cat << EOF > /home/build/immortalwrt/files/etc/config/ap-modem-settings
@@ -84,9 +85,10 @@ PACKAGES="$PACKAGES luci-i18n-filemanager-zh-cn"
 # ======== shell/apk-custom-packages.sh =======
 PACKAGES="$PACKAGES $CUSTOM_PACKAGES"
 
-# luci-app-ap-modem 需要 veth 内核模块 (init 脚本创建 veth 对)
+# luci-app-ap-modem: 25.12 走本地 apk 源正规安装 (设备上可被 apk 管理);
+# kmod-veth 是 init 脚本创建 veth 对所需
 if [ "$ENABLE_AP_MODEM" = "yes" ]; then
-    PACKAGES="$PACKAGES kmod-veth"
+    PACKAGES="$PACKAGES luci-app-ap-modem luci-i18n-ap-modem-zh-cn kmod-veth"
 fi
 
 
