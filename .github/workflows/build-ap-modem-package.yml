@@ -44,6 +44,9 @@ jobs:
         run: |
           SDK=$(ls -d /tmp/immortalwrt-sdk-*/ | head -1)
           cd "$SDK"
+          # SDK 不自带 luci feed, luci.mk (及 luci-base 依赖) 需要先拉取安装
+          ./scripts/feeds update luci
+          ./scripts/feeds install -a -p luci
           git clone --quiet https://github.com/linkease/openwrt-app-actions /tmp/app-actions
           cd /tmp/app-actions && git checkout --quiet ${{ inputs.app_ref }} && cd "$SDK"
           cp -r /tmp/app-actions/applications/luci-app-ap-modem package/luci-app-ap-modem
