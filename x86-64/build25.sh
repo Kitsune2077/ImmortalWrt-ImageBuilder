@@ -46,6 +46,17 @@ if [ "$ENABLE_AP_MODEM" = "yes" ] && [ -f /home/build/immortalwrt/extra-packages
     echo "✅ istore apk key imported"
 fi
 
+# 诊断: 预生成本地 apk 索引并确认 ap-modem 已收录, 避免静默失败难定位
+if [ "$ENABLE_AP_MODEM" = "yes" ]; then
+    make package_index >/dev/null 2>&1 || true
+    if strings /home/build/immortalwrt/packages/packages.adb 2>/dev/null | grep -q 'luci-app-ap-modem'; then
+        echo "✅ ap-modem 已进入本地 apk 索引"
+    else
+        echo "::error::ap-modem 未进入本地 apk 索引 (mkndx 失败), 请检查 istore apk 包是否可解析"
+        exit 1
+    fi
+fi
+
 if [ -n "$CUSTOM_PACKAGES" ] || [ "$ENABLE_AP_MODEM" = "yes" ]; then
   if [ -n "$CUSTOM_PACKAGES" ]; then
     # ============= 同步第三方插件库==============
