@@ -70,7 +70,10 @@ if [ "$ENABLE_AP_MODEM" = "yes" ] && [ -f /home/build/immortalwrt/extra-packages
 fi
 
 # 诊断: 预生成本地 apk 索引并确认 ap-modem 已收录, 避免静默失败难定位
+# (签名检查开启时 mkndx 需要 keys/local-private-key.pem 签索引, 该密钥平时由
+#  make image 的 _check_keys 生成, 这里先手动生成再建索引)
 if [ "$ENABLE_AP_MODEM" = "yes" ]; then
+    make _check_keys >/dev/null 2>&1 || true
     make package_index >/dev/null 2>&1 || true
     if strings /home/build/immortalwrt/packages/packages.adb 2>/dev/null | grep -q 'luci-app-ap-modem'; then
         echo "✅ ap-modem 已进入本地 apk 索引"
