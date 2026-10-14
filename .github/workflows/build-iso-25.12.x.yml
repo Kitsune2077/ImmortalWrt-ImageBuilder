@@ -158,10 +158,12 @@ jobs:
             curl -fL --retry 3 -o "/tmp/$1" "$2" || { echo "::error::$1 下载失败"; exit 1; }
             echo "$3  /tmp/$1" | sha256sum -c - || { echo "::error::$1 SHA256 校验失败"; exit 1; }
           }
-          fetch luci-app-ap-modem.apk \
+          # apk 按索引记录的名字从本地源取文件: 文件名必须保持 包名-完整版本.apk 原样,
+          # 截短会报 "package mentioned in index not found"
+          fetch luci-app-ap-modem-1.0.5-r20241208.apk \
             "https://istore.istoreos.com/repo-apk/all/nas_luci/luci-app-ap-modem-1.0.5-r20241208.apk" \
             "0ea5a437836f00e75500df04ffc86b8834edd45d8179fbcbb09f02859056834e"
-          fetch luci-i18n-ap-modem-zh-cn.apk \
+          fetch luci-i18n-ap-modem-zh-cn-23.098.14018~0543d43.apk \
             "https://istore.istoreos.com/repo-apk/all/nas_luci/luci-i18n-ap-modem-zh-cn-23.098.14018~0543d43.apk" \
             "e5650cddf6a707c9e09db1eb9ef387562da00655a80c5add47e296f7d7f1e0cd"
           # istore 官方 apk 公钥: IB 默认开启签名检查(CONFIG_SIGNATURE_CHECK=y),
@@ -170,7 +172,7 @@ jobs:
             "https://istore.istoreos.com/repo-apk/istore-apk.pem" \
             "17d39c124a39a0f0bf54601073ddb3d42bad45b40be9ad28c17e805bee04db08"
           cp /tmp/istore-apk.pem "${{ github.workspace }}/apk-extra/"
-          cp /tmp/luci-app-ap-modem.apk /tmp/luci-i18n-ap-modem-zh-cn.apk \
+          cp "/tmp/luci-app-ap-modem-1.0.5-r20241208.apk" "/tmp/luci-i18n-ap-modem-zh-cn-23.098.14018~0543d43.apk" \
              "${{ github.workspace }}/apk-extra/ap-modem/"
           ls -la "${{ github.workspace }}/apk-extra/ap-modem/"
 
