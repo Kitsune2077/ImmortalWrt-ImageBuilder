@@ -55,10 +55,11 @@ jobs:
             'CONFIG_PACKAGE_luci-i18n-ap-modem-zh-cn=y' \
             >> .config
           make defconfig
+          # i18n 包由 luci.mk 在 app 同目录生成 (无独立编译目标), 依赖 .config 选中;
+          # 检查选择状态并把同目录的所有包一起编译 (make package/<dir>/compile)
+          echo "=== i18n 选择状态 ==="
+          grep -E 'i18n-ap-modem|LUCI_LANG_zh_Hans' .config || echo "(i18n 未出现在 .config, 将只产出主包)"
           make package/luci-app-ap-modem/compile -j"$(nproc)" V=s
-          # i18n 包为 luci.mk 自动生成的独立目标; 若上面的 defconfig 未把它选入,
-          # 这里补一次多目标编译
-          make package/luci-i18n-ap-modem-zh-cn/compile -j"$(nproc)" V=s || true
           echo "=== 编译产物 ==="
           find bin -name '*ap-modem*.apk' -exec ls -la {} \;
 

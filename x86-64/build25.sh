@@ -90,7 +90,12 @@ PACKAGES="$PACKAGES $CUSTOM_PACKAGES"
 # luci-app-ap-modem: 本地 apk 源正规安装 (设备上可被 apk 管理);
 # kmod-veth 是 init 脚本创建 veth 对所需
 if [ "$ENABLE_AP_MODEM" = "yes" ]; then
-    PACKAGES="$PACKAGES luci-app-ap-modem luci-i18n-ap-modem-zh-cn kmod-veth"
+    # i18n 包按实际存在与否引用 (build-ap-modem-package 尚在完善其构建)
+    APMODEM_PKGS="luci-app-ap-modem"
+    if ls /home/build/immortalwrt/extra-packages/ap-modem/luci-i18n-ap-modem-zh-cn-*.apk >/dev/null 2>&1; then
+        APMODEM_PKGS="$APMODEM_PKGS luci-i18n-ap-modem-zh-cn"
+    fi
+    PACKAGES="$PACKAGES $APMODEM_PKGS kmod-veth"
 fi
 
 
