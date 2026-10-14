@@ -50,6 +50,11 @@ jobs:
           git clone --quiet https://github.com/linkease/openwrt-app-actions /tmp/app-actions
           cd /tmp/app-actions && git checkout --quiet ${{ inputs.app_ref }} && cd "$SDK"
           cp -r /tmp/app-actions/applications/luci-app-ap-modem package/luci-app-ap-modem
+          # luci.mk 只识别 po/zh_Hans (经 LUCI_LC_ALIAS.zh_Hans=zh-cn 生成 zh-cn 后缀
+          # 的翻译包); 上游仓库目录名是 po/zh-cn, 不改名翻译包根本不会被定义
+          if [ -d package/luci-app-ap-modem/po/zh-cn ] && [ ! -d package/luci-app-ap-modem/po/zh_Hans ]; then
+            mv package/luci-app-ap-modem/po/zh-cn package/luci-app-ap-modem/po/zh_Hans
+          fi
           printf '%s\n' \
             'CONFIG_PACKAGE_luci-app-ap-modem=y' \
             'CONFIG_PACKAGE_luci-i18n-ap-modem-zh-cn=y' \

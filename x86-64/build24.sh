@@ -39,6 +39,12 @@ ap_modem_enabled=${AP_MODEM_ENABLED:-no}
 ap_modem_ip=${AP_MODEM_IP:-192.168.1.1}
 EOF
 
+# 创建daede安装配置: install_daede=yes 时首启等待联网后在后台执行
+# kenzok8/openwrt-daede 官方安装脚本 (99-install-daede.sh 读取), 日志 /root/daede-install.log
+cat << EOF > /home/build/immortalwrt/files/etc/config/daede-settings
+install_daede=${ENABLE_DAEDE:-no}
+EOF
+
 if [ -n "$CUSTOM_PACKAGES" ] || [ "$ENABLE_AP_MODEM" = "yes" ]; then
   if [ -n "$CUSTOM_PACKAGES" ]; then
     # ============= 同步第三方插件库==============
