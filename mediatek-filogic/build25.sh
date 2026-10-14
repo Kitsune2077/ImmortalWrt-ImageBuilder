@@ -14,8 +14,8 @@ if [ -n "$CUSTOM_PACKAGES" ] || [ "$ENABLE_AP_MODEM" = "yes" ]; then
 
     echo "✅ Run files copied to extra-packages:"
   fi
-  # 解压并拷贝apk到packages目录 (extra-packages/ 同时由 volume 注入 istore 官方
-  # 源的 luci-app-ap-modem apk 包, 见 workflow Prepare 步骤)
+  # 解压并拷贝apk到packages目录 (extra-packages/ap-modem/ 由 volume 挂载注入
+  # 仓库内自编译的 ap-modem apk, 见 workflow 挂载)
   sh shell/apk-prepare-packages.sh
   ls -lah /home/build/immortalwrt/packages/
 else
@@ -51,9 +51,9 @@ ipv6_dhcpv6=${IPV6_DHCPV6:-disabled}
 ipv6_dns=${IPV6_DNS:-no}
 EOF
 
-# luci-app-ap-modem (访问 WAN 口光猫/AP): apk 包由 workflow 下载并放入
-# extra-packages/ (经顶部 apk-prepare-packages.sh 收进本地 packages/ 源),
-# PACKAGES 在第三方软件包合并处追加 插件本体+中文翻译+kmod-veth
+# luci-app-ap-modem (访问 WAN 口光猫/AP): apk 包在仓库 apk-repo/ap-modem/
+# (由 build-ap-modem-package workflow 用同版本 SDK 编译, 工具链与 IB 兼容),
+# 经 extra-packages/ 进本地源正规安装
 
 # 创建ap-modem配置文件 yml传入变量————>ap-modem-settings文件 (99-ap-modem.sh 首启读取)
 cat << EOF > /home/build/immortalwrt/files/etc/config/ap-modem-settings
@@ -61,45 +61,6 @@ install_ap_modem=${ENABLE_AP_MODEM:-no}
 ap_modem_enabled=${AP_MODEM_ENABLED:-no}
 ap_modem_ip=${AP_MODEM_IP:-192.168.1.1}
 EOF
-
-# 导入 istore 官方 apk 公钥: IB 默认 CONFIG_SIGNATURE_CHECK=y, keys/ 只有官方
-# 公钥, 未导入 istore 公钥时其签名的本地源包会 UNTRUSTED 安装失败
-if [ "$ENABLE_AP_MODEM" = "yes" ] && [ -f /home/build/immortalwrt/extra-packages/istore-apk.pem ]; then
-    cp /home/build/immortalwrt/extra-packages/istore-apk.pem /home/build/immortalwrt/keys/
-    echo "✅ istore apk key imported"
-fi
-
-# 诊断+预建索引: IB 的 package_index 会把 mkndx 的输出全部吞掉 (>/dev/null || true),
-# 失败时无从定位。这里用可见的裸命令复刻其行为: 列目录 -> 生成签名密钥 ->
-# mkndx 建索引(输出不重定向) -> 校验 ap-modem 已收录。成功后 make image 会
-# 直接复用这份索引 (package_reload 检测到索引比包新即跳过重建)。
-if [ "$ENABLE_AP_MODEM" = "yes" ]; then
-    IB=/home/build/immortalwrt
-    echo "=== packages/ 目录内容 ==="
-    ls -la "$IB/packages/"
-    if [ ! -s "$IB/keys/local-private-key.pem" ]; then
-        echo "生成 IB 本地签名密钥 (复刻 _check_keys 逻辑)..."
-        mkdir -p "$IB/keys"
-        OSSL="$IB/staging_dir/host/bin/openssl"; [ -x "$OSSL" ] || OSSL=openssl
-        "$OSSL" ecparam -name prime256v1 -genkey -noout -out "$IB/keys/local-private-key.pem" \
-            || { echo "::error::openssl 生成密钥失败"; exit 1; }
-        sed -i '1s/^/untrusted comment: Local build key\n/' "$IB/keys/local-private-key.pem"
-        "$OSSL" ec -in "$IB/keys/local-private-key.pem" -pubout > "$IB/keys/local-public-key.pem" \
-            || { echo "::error::导出公钥失败"; exit 1; }
-        sed -i '1s/^/untrusted comment: Local build key\n/' "$IB/keys/local-public-key.pem"
-    fi
-    echo "=== 运行 mkndx 建索引 (输出可见) ==="
-    (cd "$IB/packages" && "$IB/staging_dir/host/bin/apk" mkndx \
-        --keys-dir "$IB/keys" --sign "$IB/keys/local-private-key.pem" \
-        --allow-untrusted --output packages.adb *.apk) \
-        || { echo "::error::mkndx 建索引失败, 见上方输出"; exit 1; }
-    if strings "$IB/packages/packages.adb" | grep -q 'luci-app-ap-modem'; then
-        echo "✅ ap-modem 已进入本地 apk 索引"
-    else
-        echo "::error::索引已生成但其中无 ap-modem (packages/ 目录缺少 apk?)"
-        exit 1
-    fi
-fi
 
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting build process..."

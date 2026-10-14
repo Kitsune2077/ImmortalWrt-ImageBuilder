@@ -1,0 +1,80 @@
+name: Build luci-app-ap-modem apk package
+
+# 用与镜像 IB 同版本的 ImmortalWrt SDK 编译 luci-app-ap-modem (+zh-cn 翻译),
+# 把产出的 .apk 提交到仓库 apk-repo/ap-modem/。这样包的工具链与 IB 的
+# mkndx/apk 完全兼容 (istore 官方 repo-apk 的预编译包会被 IB 的 mkndx 静默
+# 跳过索引, 不可用), 且产物入库、随镜像构建一起分发。
+on:
+  workflow_dispatch:
+    inputs:
+      sdk_version:
+        description: "ImmortalWrt SDK 版本 (与镜像 IB 的 25.12.x 一致)"
+        required: false
+        default: "25.12.2"
+        type: string
+      app_ref:
+        description: "linkease/openwrt-app-actions 的 commit (luci-app-ap-modem 源码)"
+        required: false
+        default: "763fc1be2a097809ca7208dd087d7ef70b7182aa"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v6
+
+      - name: Download ImmortalWrt SDK
+        run: |
+          cd /tmp
+          BASE="https://downloads.immortalwrt.org/releases/${{ inputs.sdk_version }}/targets/x86/64"
+          SDK_FILE=$(curl -s "$BASE/" | grep -oE 'href="[^"]*immortalwrt-sdk-[^"]*\.tar\.zst"' | head -1 | sed 's/href="//;s/"$//')
+          [ -n "$SDK_FILE" ] || { echo "::error::未找到 ${{ inputs.sdk_version }} 的 x86/64 SDK 包"; exit 1; }
+          echo "SDK: $SDK_FILE"
+          curl -fL --retry 3 -O "$BASE/$SDK_FILE"
+          tar --zstd -xf "$SDK_FILE"
+          ls -d immortalwrt-sdk-*
+
+      - name: Add package source and build
+        run: |
+          SDK=$(ls -d /tmp/immortalwrt-sdk-*)
+          cd "$SDK"
+          git clone --quiet https://github.com/linkease/openwrt-app-actions /tmp/app-actions
+          cd /tmp/app-actions && git checkout --quiet ${{ inputs.app_ref }} && cd "$SDK"
+          cp -r /tmp/app-actions/applications/luci-app-ap-modem package/luci-app-ap-modem
+          printf '%s\n' \
+            'CONFIG_PACKAGE_luci-app-ap-modem=y' \
+            'CONFIG_PACKAGE_luci-i18n-ap-modem-zh-cn=y' \
+            >> .config
+          make defconfig
+          make package/luci-app-ap-modem/compile -j"$(nproc)" V=s
+          # i18n 包为 luci.mk 自动生成的独立目标; 若上面的 defconfig 未把它选入,
+          # 这里补一次多目标编译
+          make package/luci-i18n-ap-modem-zh-cn/compile -j"$(nproc)" V=s || true
+          echo "=== 编译产物 ==="
+          find bin -name '*ap-modem*.apk' -exec ls -la {} \;
+
+      - name: Commit packages into apk-repo
+        run: |
+          SDK=$(ls -d /tmp/immortalwrt-sdk-*)
+          mkdir -p apk-repo/ap-modem
+          FOUND=0
+          while IFS= read -r f; do
+            cp -v "$f" apk-repo/ap-modem/ && FOUND=1
+          done < <(find "$SDK/bin" -name '*ap-modem*.apk')
+          [ "$FOUND" = 1 ] || { echo "::error::未找到编译产物 *ap-modem*.apk"; exit 1; }
+          ls -la apk-repo/ap-modem/
+          if [ -n "$(git status --porcelain apk-repo)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add apk-repo
+            git commit -m "chore(apk-repo): build ap-modem apk (SDK ${{ inputs.sdk_version }}, app ${{ inputs.app_ref }}) [skip ci]"
+            git push
+          else
+            echo "产物无变化, 跳过提交"
+          fi
