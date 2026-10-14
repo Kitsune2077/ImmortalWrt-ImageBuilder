@@ -39,6 +39,28 @@ ap_modem_enabled=${AP_MODEM_ENABLED:-no}
 ap_modem_ip=${AP_MODEM_IP:-192.168.1.1}
 EOF
 
+if [ -n "$CUSTOM_PACKAGES" ] || [ "$ENABLE_AP_MODEM" = "yes" ]; then
+  if [ -n "$CUSTOM_PACKAGES" ]; then
+    # ============= 同步第三方插件库==============
+    # 同步第三方软件仓库run/apk
+    echo "🔄 正在同步第三方软件仓库 Cloning run file repo..."
+    git clone --depth=1 https://github.com/wukongdaily/apk.git /tmp/store-apk-repo
+
+    # 拷贝 run/x86 下所有 run 文件和apk文件 到 extra-packages 目录
+    mkdir -p /home/build/immortalwrt/extra-packages
+    cp -r /tmp/store-apk-repo/run/x86/* /home/build/immortalwrt/extra-packages/
+
+    echo "✅ Run files copied to extra-packages:"
+  fi
+  # 解压并拷贝apk到packages目录 (extra-packages/ 同时由 volume 注入 istore 官方
+  # 源的 luci-app-ap-modem apk 包, 见 workflow Prepare 步骤)
+  sh shell/apk-prepare-packages.sh
+  ls -lah /home/build/immortalwrt/packages/
+else
+  echo "⚪️ 未选择 任何第三方软件包"
+fi
+
+# (以下必须在上方 apk-prepare-packages.sh 收集完成之后执行)
 # 导入 istore 官方 apk 公钥: IB 默认 CONFIG_SIGNATURE_CHECK=y, keys/ 只有官方
 # 公钥, 未导入 istore 公钥时其签名的本地源包会 UNTRUSTED 安装失败
 if [ "$ENABLE_AP_MODEM" = "yes" ] && [ -f /home/build/immortalwrt/extra-packages/istore-apk.pem ]; then
@@ -77,28 +99,6 @@ if [ "$ENABLE_AP_MODEM" = "yes" ]; then
         exit 1
     fi
 fi
-
-if [ -n "$CUSTOM_PACKAGES" ] || [ "$ENABLE_AP_MODEM" = "yes" ]; then
-  if [ -n "$CUSTOM_PACKAGES" ]; then
-    # ============= 同步第三方插件库==============
-    # 同步第三方软件仓库run/apk
-    echo "🔄 正在同步第三方软件仓库 Cloning run file repo..."
-    git clone --depth=1 https://github.com/wukongdaily/apk.git /tmp/store-apk-repo
-
-    # 拷贝 run/x86 下所有 run 文件和apk文件 到 extra-packages 目录
-    mkdir -p /home/build/immortalwrt/extra-packages
-    cp -r /tmp/store-apk-repo/run/x86/* /home/build/immortalwrt/extra-packages/
-
-    echo "✅ Run files copied to extra-packages:"
-  fi
-  # 解压并拷贝apk到packages目录 (extra-packages/ 同时由 volume 注入 istore 官方
-  # 源的 luci-app-ap-modem apk 包, 见 workflow Prepare 步骤)
-  sh shell/apk-prepare-packages.sh
-  ls -lah /home/build/immortalwrt/packages/
-else
-  echo "⚪️ 未选择 任何第三方软件包"
-fi
-
 
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建固件..."
