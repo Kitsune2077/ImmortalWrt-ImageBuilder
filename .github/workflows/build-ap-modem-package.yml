@@ -42,7 +42,7 @@ jobs:
 
       - name: Add package source and build
         run: |
-          SDK=$(ls -d /tmp/immortalwrt-sdk-*)
+          SDK=$(ls -d /tmp/immortalwrt-sdk-*/ | head -1)
           cd "$SDK"
           git clone --quiet https://github.com/linkease/openwrt-app-actions /tmp/app-actions
           cd /tmp/app-actions && git checkout --quiet ${{ inputs.app_ref }} && cd "$SDK"
@@ -61,7 +61,7 @@ jobs:
 
       - name: Commit packages into apk-repo
         run: |
-          SDK=$(ls -d /tmp/immortalwrt-sdk-*)
+          SDK=$(ls -d /tmp/immortalwrt-sdk-*/ | head -1)
           mkdir -p apk-repo/ap-modem
           FOUND=0
           while IFS= read -r f; do
