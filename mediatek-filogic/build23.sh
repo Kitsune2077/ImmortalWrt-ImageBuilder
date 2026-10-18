@@ -9,28 +9,26 @@ if [ -n "$CUSTOM_PACKAGES" ]; then
     echo "❌ 检查到您集成了第三方软件包 由于mt3000闪存空间较小 不支持此操作"
     echo "✅ 系统将自动帮你注释掉shell/custom-packages.sh中的插件 目前支持第三方插件集成的机型是mt2500/mt6000等大闪存机型"
     CUSTOM_PACKAGES=""
-  else
-    # 下载 run 文件仓库
-    echo "🔄 正在同步第三方软件仓库 Cloning run file repo..."
-    git clone --depth=1 https://github.com/wukongdaily/store.git /tmp/store-run-repo
-
-    # 拷贝 run/arm64 下所有 run 文件和ipk文件 到 extra-packages 目录
-    mkdir -p /home/build/immortalwrt/extra-packages
-    cp -r /tmp/store-run-repo/run/arm64/* /home/build/immortalwrt/extra-packages/
-
-    echo "✅ Run files copied to extra-packages:"
-    ls -lh /home/build/immortalwrt/extra-packages/*.run
-    # 解压并拷贝ipk到packages目录
-    sh shell/prepare-packages.sh
-    ls -lah /home/build/immortalwrt/packages/
-    # 添加架构优先级信息
-    sed -i '1i\
-    arch aarch64_generic 10\n\
-    arch aarch64_cortex-a53 15' repositories.conf
   fi
-else
-  echo "⚪️ 未选择任何第三方软件包"
 fi
+# luci-app-run 必装: 无条件同步并收集第三方包仓库 (未选中的包不会被安装;
+# luci-app-run 仅约 12KB, 小闪存机型亦可安全安装)
+echo "🔄 正在同步第三方软件仓库 Cloning run file repo..."
+git clone --depth=1 https://github.com/wukongdaily/store.git /tmp/store-run-repo
+
+# 拷贝 run/arm64 下所有 run 文件和ipk文件 到 extra-packages 目录
+mkdir -p /home/build/immortalwrt/extra-packages
+cp -r /tmp/store-run-repo/run/arm64/* /home/build/immortalwrt/extra-packages/
+
+echo "✅ Run files copied to extra-packages:"
+ls -lh /home/build/immortalwrt/extra-packages/*.run
+# 解压并拷贝ipk到packages目录
+sh shell/prepare-packages.sh
+ls -lah /home/build/immortalwrt/packages/
+# 添加架构优先级信息
+sed -i '1i\
+arch aarch64_generic 10\n\
+arch aarch64_cortex-a53 15' repositories.conf
 # yml 传入的路由器型号 PROFILE
 echo "Building for profile: $PROFILE"
 echo "Include Docker: $INCLUDE_DOCKER"
