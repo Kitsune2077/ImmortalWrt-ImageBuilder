@@ -2,26 +2,18 @@
 source shell/apk-custom-packages.sh
 #echo "✅ 你选择了第三方软件包：$CUSTOM_PACKAGES"
 # luci-app-run 必装: 无条件同步并收集第三方包仓库 (未选中的包不会被安装)
-if true; then
-  if [ -n "$CUSTOM_PACKAGES" ]; then
-    # ============= 同步第三方插件库==============
-    # 同步第三方软件仓库run/apk
-    echo "🔄 正在同步第三方软件仓库 Cloning apk file repo..."
-    git clone --depth=1 https://github.com/wukongdaily/apk.git /tmp/store-apk-repo
+echo "🔄 正在同步第三方软件仓库 Cloning apk file repo..."
+git clone --depth=1 https://github.com/wukongdaily/apk.git /tmp/store-apk-repo
 
-    # 拷贝 run/arm64 下所有 run 文件和apk文件 到 extra-packages 目录
-    mkdir -p /home/build/immortalwrt/extra-packages
-    cp -r /tmp/store-apk-repo/run/arm64-a53/* /home/build/immortalwrt/extra-packages/
+# 拷贝 run/arm64 下所有 run 文件和apk文件 到 extra-packages 目录
+mkdir -p /home/build/immortalwrt/extra-packages
+cp -r /tmp/store-apk-repo/run/arm64-a53/* /home/build/immortalwrt/extra-packages/
+echo "✅ Run files copied to extra-packages:"
 
-    echo "✅ Run files copied to extra-packages:"
-  fi
-  # 解压并拷贝apk到packages目录 (extra-packages/ap-modem/ 由 volume 挂载注入
-  # 仓库内自编译的 ap-modem apk, 见 workflow 挂载)
-  sh shell/apk-prepare-packages.sh
-  ls -lah /home/build/immortalwrt/packages/
-else
-  echo "⚪️ 未选择 任何第三方软件包"
-fi
+# 解压并拷贝apk到packages目录 (extra-packages/ap-modem/ 由 volume 挂载注入
+# 仓库内自编译的 ap-modem apk, 见 workflow 挂载)
+sh shell/apk-prepare-packages.sh
+ls -lah /home/build/immortalwrt/packages/
 
 
 

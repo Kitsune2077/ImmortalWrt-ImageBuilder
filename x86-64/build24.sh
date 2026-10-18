@@ -46,27 +46,19 @@ install_daede=${ENABLE_DAEDE:-no}
 EOF
 
 # luci-app-run 必装: 无条件同步并收集第三方包仓库 (未选中的包不会被安装)
-if true; then
-  if [ -n "$CUSTOM_PACKAGES" ]; then
-    # ============= 同步第三方插件库==============
-    # 同步第三方软件仓库run/ipk
-    echo "🔄 正在同步第三方软件仓库 Cloning run file repo..."
-    git clone --depth=1 https://github.com/wukongdaily/store.git /tmp/store-run-repo
+echo "🔄 正在同步第三方软件仓库 Cloning run file repo..."
+git clone --depth=1 https://github.com/wukongdaily/store.git /tmp/store-run-repo
 
-    # 拷贝 run/x86 下所有 run 文件和ipk文件 到 extra-packages 目录
-    mkdir -p /home/build/immortalwrt/extra-packages
-    cp -r /tmp/store-run-repo/run/x86/* /home/build/immortalwrt/extra-packages/
+# 拷贝 run/x86 下所有 run 文件和ipk文件 到 extra-packages 目录
+mkdir -p /home/build/immortalwrt/extra-packages
+cp -r /tmp/store-run-repo/run/x86/* /home/build/immortalwrt/extra-packages/
+echo "✅ Run files copied to extra-packages:"
+ls -lh /home/build/immortalwrt/extra-packages/*.run
 
-    echo "✅ Run files copied to extra-packages:"
-    ls -lh /home/build/immortalwrt/extra-packages/*.run
-  fi
-  # 解压并拷贝ipk到packages目录 (extra-packages/ 同时由 volume 注入 istore 官方
-  # 源的 luci-app-ap-modem ipk 包, 见 workflow Prepare 步骤)
-  sh shell/prepare-packages.sh
-  ls -lah /home/build/immortalwrt/packages/
-else
-  echo "⚪️ 未选择 任何第三方软件包"
-fi
+# 解压并拷贝ipk到packages目录 (extra-packages/ 同时由 volume 注入 istore 官方
+# 源的 luci-app-ap-modem ipk 包, 见 workflow Prepare 步骤)
+sh shell/prepare-packages.sh
+ls -lah /home/build/immortalwrt/packages/
 
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建固件..."
