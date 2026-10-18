@@ -1,7 +1,8 @@
 #!/bin/bash
 source shell/apk-custom-packages.sh
 #echo "✅ 你选择了第三方软件包：$CUSTOM_PACKAGES"
-if [ -n "$CUSTOM_PACKAGES" ] || [ "$ENABLE_AP_MODEM" = "yes" ]; then
+# luci-app-run 必装: 无条件同步并收集第三方包仓库 (未选中的包不会被安装)
+if true; then
   if [ -n "$CUSTOM_PACKAGES" ]; then
     # ============= 同步第三方插件库==============
     # 同步第三方软件仓库run/apk
@@ -83,6 +84,8 @@ PACKAGES="$PACKAGES luci-i18n-diskman-zh-cn"
 PACKAGES="$PACKAGES luci-i18n-package-manager-zh-cn"
 PACKAGES="$PACKAGES luci-i18n-ttyd-zh-cn"
 PACKAGES="$PACKAGES openssh-sftp-server"
+# 必装: luci-app-run (wukongdaily 网页上传/运行 .run/.sh/.ipk/.apk 安装器)
+PACKAGES="$PACKAGES luci-app-run"
 # 文件管理器
 PACKAGES="$PACKAGES luci-i18n-filemanager-zh-cn"
 
