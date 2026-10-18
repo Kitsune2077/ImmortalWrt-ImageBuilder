@@ -86,6 +86,8 @@ PACKAGES="$PACKAGES luci-i18n-diskman-zh-cn"
 PACKAGES="$PACKAGES luci-i18n-package-manager-zh-cn"
 PACKAGES="$PACKAGES luci-i18n-ttyd-zh-cn"
 PACKAGES="$PACKAGES openssh-sftp-server"
+# 必装: luci-app-run (wukongdaily 网页上传/运行 .run/.sh/.ipk/.apk 安装器)
+PACKAGES="$PACKAGES luci-app-run"
 # 文件管理器
 PACKAGES="$PACKAGES luci-i18n-filemanager-zh-cn"
 
