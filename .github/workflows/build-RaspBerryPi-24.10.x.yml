@@ -39,6 +39,20 @@ on:
         options:
           - 'yes'
           - 'no'
+      enable_pppoe:
+        description: "是否配置PPPoE拨号信息? (仅多网口设备生效, 默认WAN口为DHCP)"
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      pppoe_account:
+        description: "宽带账号 (若启用PPPoE)"
+        required: false
+      pppoe_password:
+        description: "宽带密码 (若启用PPPoE)"
+        required: false
       size:
         description: '请输入要编译固件大小 单位(MB)'
         required: true
@@ -68,8 +82,17 @@ jobs:
           else
             echo "❎ 未启用 luci-app-store"
           fi
-      
-      
+
+      - name: Validate PPPoE Inputs
+        run: |
+          if [[ "${{ inputs.enable_pppoe }}" == "yes" ]]; then
+            if [[ -z "${{ inputs.pppoe_account }}" || -z "${{ inputs.pppoe_password }}" ]]; then
+              echo "Error: PPPoE account and password must be provided when PPPoE is enabled!"
+              exit 1
+            fi
+          fi
+
+
       - name: Build raspberrypi ImmortalWrt 24.10.x
         run: |
           luci_version="${{ github.event.inputs.luci_version }}"
@@ -110,6 +133,9 @@ jobs:
               -e PROFILE=$profile \
               -e LUCI_VERSION=$luci_version \
               -e INCLUDE_DOCKER=$include_docker \
+              -e ENABLE_PPPOE=${{ github.event.inputs.enable_pppoe }} \
+              -e PPPOE_ACCOUNT=${{ github.event.inputs.pppoe_account }} \
+              -e PPPOE_PASSWORD=${{ github.event.inputs.pppoe_password }} \
               -e ROOTSIZE=$size \
               immortalwrt/imagebuilder:$tag /bin/bash /home/build/openwrt/build.sh
           done

@@ -196,6 +196,20 @@ on:
         options:
           - 'yes'
           - 'no'
+      enable_pppoe:
+        description: "是否配置PPPoE拨号信息? (仅多网口设备生效, 默认WAN口为DHCP)"
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      pppoe_account:
+        description: "宽带账号 (若启用PPPoE)"
+        required: false
+      pppoe_password:
+        description: "宽带密码 (若启用PPPoE)"
+        required: false
       enable_store:
         description: "集成 store 商店"
         required: false
@@ -238,7 +252,16 @@ jobs:
 
       - name: Debug workspace contents
         run: ls -R
-      
+
+      - name: Validate PPPoE Inputs
+        run: |
+          if [[ "${{ inputs.enable_pppoe }}" == "yes" ]]; then
+            if [[ -z "${{ inputs.pppoe_account }}" || -z "${{ inputs.pppoe_password }}" ]]; then
+              echo "Error: PPPoE account and password must be provided when PPPoE is enabled!"
+              exit 1
+            fi
+          fi
+
       - name: Enable Store integration
         run: |
           if [ "${{ github.event.inputs.enable_store }}" == "true" ]; then
@@ -279,6 +302,9 @@ jobs:
               -v "${{ github.workspace }}/n1/build.sh:/home/build/immortalwrt/build.sh" \
               -e PROFILE=$profile \
               -e INCLUDE_DOCKER=$include_docker \
+              -e ENABLE_PPPOE=${{ github.event.inputs.enable_pppoe }} \
+              -e PPPOE_ACCOUNT=${{ github.event.inputs.pppoe_account }} \
+              -e PPPOE_PASSWORD=${{ github.event.inputs.pppoe_password }} \
               -e ROOTFS_PARTSIZE=$rootfs_partsize \
               immortalwrt/imagebuilder:armsr-armv8-openwrt-${luci_version} /bin/bash /home/build/immortalwrt/build.sh
           done

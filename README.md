@@ -139,6 +139,20 @@ WAN 侧按拨号方式自动区分：PPPoE 依赖自动生成的动态 `wan_6`�
 > （25.12 为 apk 包、24.10 为 ipk 包，设备上均可被包管理器管理）。
 > 单网口 x86（LAN 为 dhcp 的 NAS/旁路由模式）只应用 dnsmasq AAAA 调整，跳过 WAN/RA 配置。
 
+## 📶 PPPoE 上网策略（全部固件工作流）
+
+所有固件构建工作流（无线路由器、x86-64、ISO、Rockchip、QEMU、N1、ophub 盒子、flippy 开发板、树莓派、全志 sunxi）均支持可选上网策略，多网口设备默认 **WAN 口 DHCP**，可切换为 **PPPoE 拨号**：
+
+| 输入 | 说明 | 默认 |
+|---|---|---|
+| `enable_pppoe` | 是否启用 PPPoE 拨号（不启用则 WAN 口保持 DHCP） | `no` |
+| `pppoe_account` | PPPoE 宽带账号（启用时必填，否则工作流校验失败） | 空 |
+| `pppoe_password` | PPPoE 宽带密码（启用时必填） | 空 |
+
+- 实现方式：构建时 `build*.sh` 把选项写入镜像内 `/etc/config/pppoe-settings`，首启 `99-custom.sh` 自动检测网口数量——**单网口设备**忽略拨号配置（整机 DHCP 的旁路由/NAS 模式）；**多网口设备**将第一个网口设为 WAN 并按选项应用 DHCP 或 PPPoE（个别开发板网口顺序有特殊映射，见脚本内 case）。
+- 注意：N1 / ophub / flippy 工作流勾选「跳过 ImageBuilder」时使用预构建底包，PPPoE 预置不生效。
+- 提示：workflow 输入会显示在运行记录中，账号密码属敏感信息，公共 fork 慎用。
+
 ## ❤️如何构建docker版ImmortalWrt（建议收藏）⬇️
 https://wkdaily.cpolar.cn/15
 # 🎉鸣谢

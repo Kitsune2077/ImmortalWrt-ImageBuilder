@@ -46,6 +46,20 @@ on:
         options:
           - 'yes'
           - 'no'
+      enable_pppoe:
+        description: "是否配置PPPoE拨号信息? (仅多网口设备生效, 默认WAN口为DHCP)"
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      pppoe_account:
+        description: "宽带账号 (若启用PPPoE)"
+        required: false
+      pppoe_password:
+        description: "宽带密码 (若启用PPPoE)"
+        required: false
       rootfs_partsize:
         description: '选择软件包空间大小'
         required: true
@@ -81,7 +95,16 @@ jobs:
           else
             echo "❎ 未启用 luci-app-store"
           fi
-      
+
+      - name: Validate PPPoE Inputs
+        run: |
+          if [[ "${{ inputs.enable_pppoe }}" == "yes" ]]; then
+            if [[ -z "${{ inputs.pppoe_account }}" || -z "${{ inputs.pppoe_password }}" ]]; then
+              echo "Error: PPPoE account and password must be provided when PPPoE is enabled!"
+              exit 1
+            fi
+          fi
+
       - name: Build sunxi-cortexa53 ImmpotalWrt 24.10.x
         run: |
           profiles="${{ github.event.inputs.profile }}"
@@ -118,6 +141,9 @@ jobs:
               -v "${{ github.workspace }}/sunxi-cortexa53/build24.sh:/home/build/immortalwrt/build.sh" \
               -e PROFILE=$profile \
               -e INCLUDE_DOCKER=$include_docker \
+              -e ENABLE_PPPOE=${{ github.event.inputs.enable_pppoe }} \
+              -e PPPOE_ACCOUNT=${{ github.event.inputs.pppoe_account }} \
+              -e PPPOE_PASSWORD=${{ github.event.inputs.pppoe_password }} \
               -e ROOTSIZE=$ROOTFS_SIZE \
               immortalwrt/imagebuilder:sunxi-cortexa53-openwrt-${luci_version} /bin/bash /home/build/immortalwrt/build.sh
           done
